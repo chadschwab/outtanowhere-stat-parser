@@ -13,7 +13,7 @@ program
   .option('-o, --output [output]', 'The output file. If not given outputs to standard out.')
   .option('--game-type [gameType]', 'Type of session [Regular|Playoff]', 'Regular')
   .option('--session [session]', 'The description of the session', 'Spring 2019')
-  .option('--session-rank [rank]', 'The description of the session', 'Spring 2019')
+  .option('--session-rank [rank]', 'The description of the session', '6')
   .action(async function (file, { debug, output, gameType: type, session, rank }) {
     let skaterData = [] // Player	Session	Type	Date	GP	G	A	PTS	PIM	SOA	SOG
     let goalieData = [] // Player	Session	Type	Date	GP	W	L	SOL	A	SV	Shots	GA	SO SA	SO GA
