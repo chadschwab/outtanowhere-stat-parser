@@ -56,19 +56,20 @@ program
           const playerMap = type === 'skater' ? skaterData : goalieData;
           const player = type === 'skater' ? skaters[name] : goalies[name];
           const parseFunction = type === 'skater' ? parseSkaterDataFromLine : parseGoalieDataFromLine;
-          let parsedPlayerData = parseFunction(relevantSubstring)
+          let parsedPlayerData = parseFunction(relevantSubstring, teamData)
           if (parsedPlayerData) {
             if (playerMap[player]) {
               parsedPlayerData = await handleConflict(player, playerMap[player], parsedPlayerData)
             }
             playerMap[player] = {
               ...parsedPlayerData,
+              gp: 1,
               player,
               session: teamData.session,
               type: teamData.type,
               date: teamData.date
             }
-            console.info(`Set data for ${player}: ${JSON.stringify(playerMap[player])}`)
+            console.info(`Set data for ${type} ${player}: ${JSON.stringify(playerMap[player])}`)
           } else console.debug(`No data found`)
         }
       }
@@ -81,28 +82,31 @@ function parseDateFromLine(line) {
   const dateMatch = line.match(/^\s*([a-z]+\s[0-9]{2})/i)
   if (dateMatch) {
     const date = new Date(`${dateMatch[1]} ${new Date().getFullYear()}`)
-    return date
+    return date.toLocaleDateString()
   }
   return null
 }
 
 function parseTeamDataFromLine(line) {
-  const scoreMatch = line.match(/^\s*([0-9]+)\s*-\s*([0-9]+)\s*(win).*vs\s*(.*)$/i)
+  const scoreMatch = line.match(/([0-9]+)\s*-\s*([0-9]+)/)
+  const winMatch = line.match(/win/i)
+  const lossMatch = line.match(/loss|lost/i)
+  const sowMatch = line.match(/shoot out win|sow/i)
+  const solMatch = line.match(/shoot out loss|sol/i)
+  const opponentMatch = line.match(/(vs\.?|verse|versus)\s?(.*)\s*/i)
+
   if (scoreMatch) {
-    let [, gf, ga, outcome, opponent] = scoreMatch
+    let [, gf, ga] = scoreMatch
     return {
-      opponent,
-      win: outcome.match(/win/i) ? 1 : 0,
-      loss: outcome.match(/loss/i) ? 1 : 0,
+      opponent: opponentMatch ? opponentMatch[2] : null,
+      win: winMatch && !sowMatch ? 1 : 0,
+      loss: lossMatch && !solMatch ? 1 : 0,
+      sow: sowMatch ? 1 : 0,
+      sol: solMatch ? 1 : 0,
       gf,
       ga
     }
   }
-  return null
-}
-
-function parseGoalieDataFromLine(line) {
-  console.warn('Not implemented')
   return null
 }
 
@@ -125,13 +129,46 @@ function parsePlayerMentionsFromLine(line) {
   return mentions.filter(m => m.startIndex !== m.endIndex)
 }
 
+function parseGoalieDataFromLine(line, teamData) {
+  let parsedGoalieData;
+  const shotsMatch = line.match(/([0-9]+)[^0-9]*shot/i);
+  const shotsOfTotalMatch = line.match(/([0-9]+) of ([0-9]+)/i);
+  if (shotsMatch) {
+    const goalMatch = line.match(/([0-9]+)[^0-9]*goal/i); //dude likes to be dramatic with his adjectives "1 horrendous goal"
+    parsedGoalieData = { //Player	Session	Type	Date	GP	W	L	SOL	A	SV	Shots	GA	SO SA	SO GA
+      shots: parseInt(shotsMatch[1]),
+      ga: goalMatch ? parseInt(goalMatch[1]) : teamData.ga
+    };
+    parsedGoalieData.sv = parsedGoalieData.shots - parsedGoalieData.ga;
+  } else if (shotsOfTotalMatch) {
+    const [, sv, shots] = shotsOfTotalMatch;
+    parsedGoalieData = {
+      sv: parseInt(sv),
+      shots: parseInt(shots)
+    }
+    parsedGoalieData.ga = parsedGoalieData.shots - parsedGoalieData.sv;
+  } else {
+    return null;
+  }
+  const assistMatch = line.match(/([0-9]+)\s?a/i)
+
+  return { //W	L	SOL	A	SV	Shots	GA	SO SA	SO GA
+    ...parsedGoalieData,
+    w: teamData.win,
+    l: teamData.loss,
+    sol: teamData.sol,
+    sow: teamData.sow,
+    a: assistMatch ? parseInt(assistMatch[1]) : 0
+  };
+}
+
 function parseSkaterDataFromLine(line) {
-  const assistMatch = line.match(/([0-9])a/i)
-  const secondaryAssistMatch = line.match(/([0-9]) secondary/i)
-  const goalMatch = line.match(/([0-9])g/i)
-  const pimMatch = line.match(/([0-9])p\.?i\.?m/i) || line.match(/([0-9]) penalty/i)
-  const sogMatch = line.match(/([0-9])\s?s\.?o\.?g/i) || line.match(/([0-9]) shoot out goal/i)
-  const soaMatch = line.match(/([0-9])\s?s\.?o\.?a/i) || line.match(/([0-9]) shoot out attempt/i)
+  const assistMatch = line.match(/([0-9]+)a/i)
+  const secondaryAssistMatch = line.match(/([0-9]+) secondary/i)
+  const goalMatch = line.match(/([0-9]+)g/i)
+  const pimMatch = line.match(/([0-9]+)p\.?i\.?m/i) || line.match(/([0-9]+) penalty/i)
+  const sogMatch = line.match(/([0-9]+)\s?s\.?o\.?g/i) || line.match(/([0-9]+) shoot out goal/i)
+  const soaMatch = line.match(/([0-9]+)\s?s\.?o\.?a/i) || line.match(/([0-9]+) shoot out attempt/i)
   if (!goalMatch &&
     !assistMatch &&
     !secondaryAssistMatch &&
@@ -141,7 +178,6 @@ function parseSkaterDataFromLine(line) {
   ) return null
 
   const skaterData = {
-    gp: 1,
     g: goalMatch ? parseInt(goalMatch[1]) : 0,
     a: (assistMatch ? parseInt(assistMatch[1]) : 0) + (secondaryAssistMatch ? parseInt(secondaryAssistMatch[1]) : 0),
     pim: pimMatch ? parseInt(pimMatch[1]) : 0,
