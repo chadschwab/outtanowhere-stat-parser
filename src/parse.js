@@ -2,7 +2,6 @@ const readline = require('readline')
 const skaters = require('../team-data/skaters.json')
 const goalies = require('../team-data/goalies.json')
 
-
 module.exports = parseFacebookPost;
 
 
@@ -137,7 +136,9 @@ function parseGoalieDataFromLine(line, teamData) {
   } else {
     return null;
   }
-  const assistMatch = line.match(/([0-9]+)\s?a/i)
+  const assistMatch = line.match(/([0-9]+)\s?a/i) || line.match(/([0-9]+) assist/i);
+  const shootOutShotsAgainsts = line.match(/([0-9]+)\s?s\.?o\.?s\.?a/i) || line.match(/([0-9]+) shoot out shot/i)
+  const shootOutGoalsAgainst = line.match(/([0-9]+)\s?s\.?o\.?g\.?a/i) || line.match(/([0-9]+) shoot out goal/i)
 
   return { //W	L	SOL	A	SV	Shots	GA	SO SA	SO GA
     ...parsedGoalieData,
@@ -145,7 +146,9 @@ function parseGoalieDataFromLine(line, teamData) {
     l: teamData.loss,
     sol: teamData.sol,
     sow: teamData.sow,
-    a: assistMatch ? parseInt(assistMatch[1]) : 0
+    a: assistMatch ? parseInt(assistMatch[1]) : 0,
+    sosa: shootOutShotsAgainsts,
+    soga: shootOutGoalsAgainst
   };
 }
 
