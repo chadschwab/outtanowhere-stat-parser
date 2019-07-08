@@ -151,10 +151,10 @@ function parseGoalieDataFromLine(line, teamData) {
 }
 
 function parseSkaterDataFromLine(line) {
-  const assistMatch = line.match(/([0-9]+)a/i)
+  const assistMatch = line.match(/([0-9]+)a/i) || line.match(/([0-9]+) assist/i)
   const secondaryAssistMatch = line.match(/([0-9]+) secondary/i)
-  const goalMatch = line.match(/([0-9]+)g/i)
-  const pimMatch = line.match(/([0-9]+)p\.?i\.?m/i) || line.match(/([0-9]+) penalty/i)
+  const goalMatch = line.match(/([0-9]+)g/i) || line.match(/([0-9]+) goal/i)
+  const pimMatch = line.match(/([0-9]+)\s?p\.?i\.?m/i) || line.match(/([0-9]+) penalty/i)
   const sogMatch = line.match(/([0-9]+)\s?s\.?o\.?g/i) || line.match(/([0-9]+) shoot out goal/i)
   const soaMatch = line.match(/([0-9]+)\s?s\.?o\.?a/i) || line.match(/([0-9]+) shoot out attempt/i)
   if (!goalMatch &&
