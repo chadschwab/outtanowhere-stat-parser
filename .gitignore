@@ -1,4 +1,3 @@
-skaters.json
-goalies.json
+team-data/
 node_modules
-*tmp*
+
