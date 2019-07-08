@@ -27,7 +27,7 @@ async function parseFacebookPost(readStream, type, session, rank) {
       }
     } else if (!teamData.opponent) {
       console.debug(`Attempting to parse score from: ${line}`)
-      const parsedTeamData = parseTeamDataFromLine(line)
+      const parsedTeamData = await parseTeamDataFromLine(line)
       if (parsedTeamData) {
         teamData = {
           ...teamData,
@@ -74,18 +74,20 @@ function parseDateFromLine(line) {
   return null
 }
 
-function parseTeamDataFromLine(line) {
+async function parseTeamDataFromLine(line) {
   const scoreMatch = line.match(/([0-9]+)\s*-\s*([0-9]+)/)
   const winMatch = line.match(/win/i)
   const lossMatch = line.match(/loss|lost/i)
   const sowMatch = line.match(/shoot out win|sow/i)
   const solMatch = line.match(/shoot out loss|sol/i)
-  const opponentMatch = line.match(/(vs\.?|verse|versus)\s?(.*)\s*/i)
+  const opponentMatch = line.match(/(vs\.?|verse|versus)\s?(.*) at/i) || line.match(/(vs\.?|verse|versus)\s?(.*)\s*/i)
+  const timeMatch = line.match(/at ([0-1]?[0-9]:[0-9]{2})\s?(A\.?M|P\.?M)/i);
 
   if (scoreMatch) {
     let [, gf, ga] = scoreMatch
     return {
-      opponent: opponentMatch ? opponentMatch[2] : null,
+      opponent: opponentMatch ? opponentMatch[2] : await askForInput("Opponent: "),
+      time: timeMatch ? timeMatch[1] + timeMatch[2] : await askForInput("Time: "),
       win: winMatch && !sowMatch ? 1 : 0,
       loss: lossMatch && !solMatch ? 1 : 0,
       sow: sowMatch ? 1 : 0,
@@ -181,17 +183,26 @@ function parseSkaterDataFromLine(line) {
   }
 }
 
-async function handleConflict(player, currentValue, newValue) {
+async function askForInput(message) {
   var inputReader = readline.createInterface({
     input: process.stdin,
     output: process.stdout
-  })
+  });
+
+  return await new Promise(resolve => {
+    inputReader.question(message, () => {
+      inputReader.close();
+      resolve();
+    });
+  });
+}
+
+
+async function handleConflict(player, currentValue, newValue) {
   let action = ''
   do {
     let message = action === '' ? `Found more than one entry for ${player}. Current value: ${JSON.stringify(currentValue)}. New Value ${JSON.stringify(newValue)}\n1 - Take First\n2 - Take Second\n3 - Combine\n` : 'Type 1, 2, or 3\n'
-    action = await new Promise(resolve => {
-      inputReader.question(message, resolve)
-    })
+    action = await askForInput(message);
     action = action.substr(0, 1)
   }
   while (!['1', '2', '3'].includes(action))
