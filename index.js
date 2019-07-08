@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-const program = require('commander')
+const program = require('commander');
+const { createReadStream } = require('fs')
 const parse = require('./src/parse');
 
 program
@@ -16,7 +17,13 @@ program
     if (!debug) {
       console.debug = () => { }
     }
-    await parse(file, gameType, session, sessionRank);
+    let readStream;
+    try {
+      await parse(readStream = createReadStream(file), gameType, session, sessionRank);
+    }
+    finally {
+      readStream.close();
+    }
   });
 
 program.parse(process.argv)

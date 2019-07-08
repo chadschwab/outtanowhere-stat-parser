@@ -1,5 +1,4 @@
 const readline = require('readline')
-const { createReadStream } = require('fs')
 const skaters = require('../team-data/skaters.json')
 const goalies = require('../team-data/goalies.json')
 
@@ -7,7 +6,7 @@ const goalies = require('../team-data/goalies.json')
 module.exports = parseFacebookPost;
 
 
-async function parseFacebookPost(file, type, session, rank) {
+async function parseFacebookPost(readStream, type, session, rank) {
   let skaterData = [] // Player	Session	Type	Date	GP	G	A	PTS	PIM	SOA	SOG
   let goalieData = [] // Player	Session	Type	Date	GP	W	L	SOL	A	SV	Shots	GA	SO SA	SO GA
   let teamData = {
@@ -16,7 +15,7 @@ async function parseFacebookPost(file, type, session, rank) {
     type
   } // rank	Session	Type	Opponent	Date	Time	Win	Lost	SOL	SOW	GF	GA
   var lineReader = readline.createInterface({
-    input: createReadStream(file)
+    input: readStream
   })
 
   for await (const line of lineReader) {
