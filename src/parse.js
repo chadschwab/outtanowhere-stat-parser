@@ -62,13 +62,14 @@ async function parseFacebookPost(readStream, type, session, rank) {
     }
   }
   lineReader.close()
+  return { skaterData, goalieData, teamData };
 }
 
 function parseDateFromLine(line) {
   const dateMatch = line.match(/^\s*([a-z]+\s[0-9]{2})/i)
   if (dateMatch) {
     const date = new Date(`${dateMatch[1]} ${new Date().getFullYear()}`)
-    return date.toLocaleDateString()
+    return date
   }
   return null
 }
@@ -147,8 +148,8 @@ function parseGoalieDataFromLine(line, teamData) {
     sol: teamData.sol,
     sow: teamData.sow,
     a: assistMatch ? parseInt(assistMatch[1]) : 0,
-    sosa: shootOutShotsAgainsts,
-    soga: shootOutGoalsAgainst
+    'so sa': shootOutShotsAgainsts,
+    'so ga': shootOutGoalsAgainst
   };
 }
 

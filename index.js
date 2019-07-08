@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 const program = require('commander');
-const { createReadStream } = require('fs')
+const { createReadStream, mkdirSync } = require('fs')
 const parse = require('./src/parse');
+const write = require('./src/write');
 
 program
   .command('parse <file>')
@@ -12,14 +13,18 @@ program
   .option('--game-type [gameType]', 'Type of session [Regular|Playoff]', 'Regular')
   .option('--session [session]', 'The description of the session', 'Spring 2019')
   .option('--session-rank [sessionRank]', 'The description of the session', '6')
-  .action(async function (file, { debug, output, gameType, session, sessionRank }) {
-
+  .action(async function (file, { debug, gameType, session, sessionRank }) {
     if (!debug) {
       console.debug = () => { }
     }
     let readStream;
     try {
-      await parse(readStream = createReadStream(file), gameType, session, sessionRank);
+      const { skaterData, goalieData, teamData } = await parse(readStream = createReadStream(file), gameType, session, sessionRank);
+
+      const saveDirectory = `./team-stats/${teamData.date.toDateString()}`;
+      mkdirSync(saveDirectory, { recursive: true });
+
+      await write(saveDirectory, skaterData, goalieData, teamData);
     }
     finally {
       readStream.close();
