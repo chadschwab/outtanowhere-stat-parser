@@ -1,4 +1,5 @@
 const stringify = require('csv-stringify');
+const { promiseCallback } = require('./utils');
 
 module.exports.stringifySkaterData = stringifySkaterData;
 module.exports.stringifyGoalieData = stringifyGoalieData;
@@ -10,8 +11,6 @@ const defaultOptions = (humanReadable) => ({
     date: d => d.toLocaleDateString()
   }
 });
-
-const promiseCallback = (resolve, reject) => (err, result) => err && reject(err) || resolve(result);
 
 function stringifySkaterData(skaterData, humanReadable) {
   return new Promise((resolve, reject) => {

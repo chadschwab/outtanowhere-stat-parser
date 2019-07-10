@@ -8,6 +8,6 @@ async function write(directory, skaterData, goalieData, teamData) {
   ['skaterData', 'goalieData', 'teamData'].forEach((s, i) => writeFileSync(`${directory}/${s}.csv`, stringifiedData[i]));
 
   const stringifiedDataWithHeaders = await Promise.all([stringifySkaterData(skaterData, true), stringifyGoalieData(goalieData, true), stringifyTeamData(teamData, true)]);
-  await writeFileSync(`${directory}/facebook-post.txt`, stringifiedDataWithHeaders.join("\n--\n"))
+  await writeFileSync(`${directory}/facebook-post.txt`, stringifiedDataWithHeaders.join("--\n\n"))
 }
 

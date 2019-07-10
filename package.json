@@ -10,7 +10,8 @@
   "license": "UNLICENSED",
   "dependencies": {
     "commander": "^2.20.0",
-    "csv-stringify": "^5.3.0"
+    "csv-stringify": "^5.3.0",
+    "glob": "^7.1.4"
   },
   "devDependencies": {
     "eslint": "^6.0.1"

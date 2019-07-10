@@ -61,12 +61,18 @@ async function parseFacebookPost(readStream, type, session, rank) {
       }
     }
   }
-  lineReader.close()
+  lineReader.close();
+  if (!teamData.date) {
+    throw new Error("Date not found.");
+  }
+  if (!teamData.opponent) {
+    throw new Error("Team data not found")
+  }
   return { skaterData, goalieData, teamData };
 }
 
 function parseDateFromLine(line) {
-  const dateMatch = line.match(/^\s*([a-z]+\s[0-9]{2})/i)
+  const dateMatch = line.match(/^\s*([a-z]+\s[0-3]?[0-9])/i)
   if (dateMatch) {
     const date = new Date(`${dateMatch[1]} ${new Date().getFullYear()}`)
     return date
@@ -80,7 +86,7 @@ async function parseTeamDataFromLine(line) {
   const lossMatch = line.match(/loss|lost/i)
   const sowMatch = line.match(/shoot out win|sow/i)
   const solMatch = line.match(/shoot out loss|sol/i)
-  const opponentMatch = line.match(/(vs\.?|verse|versus)\s?(.*) at/i) || line.match(/(vs\.?|verse|versus)\s?(.*)\s*/i)
+  const opponentMatch = line.match(/(v\.?s\.?|verse|versus|to)\s?(.*) at/i) || line.match(/(v\.?s\.?|to|verse|versus)\s?(.*)\s*/i)
   const timeMatch = line.match(/at ([0-1]?[0-9]:[0-9]{2})\s?(A\.?M|P\.?M)/i);
 
   if (scoreMatch) {
@@ -190,9 +196,9 @@ async function askForInput(message) {
   });
 
   return await new Promise(resolve => {
-    inputReader.question(message, () => {
+    inputReader.question(message, (result) => {
       inputReader.close();
-      resolve();
+      resolve(result);
     });
   });
 }
