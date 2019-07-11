@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 const program = require('commander');
-const { createReadStream, mkdirSync, readFileSync, writeFileSync } = require('fs')
+const { createReadStream, mkdirSync, readFileSync, writeFileSync, lstatSync, readdirSync } = require('fs');
+const { sep } = require('path');
 const parse = require('./src/parse');
 const write = require('./src/write');
 const { toDatePartitionString, parseDateFromPartitionString } = require('./src/utils');
@@ -17,20 +18,24 @@ program
   .option('--session [session]', 'The description of the session', 'Summer 2019')
   .option('--session-rank [sessionRank]', 'The description of the session', '6')
   .action(async function (file, { gameType, session, sessionRank }) {
-    let readStream;
-    try {
-      const { skaterData, goalieData, teamData } = await parse(readStream = createReadStream(file), gameType, session, sessionRank);
+    let files = lstatSync(file).isDirectory() ? readdirSync(file).filter(f => f.endsWith('.txt')).map(f => `${file}${sep}${f}`) : [file];
+    console.debug('The following files will be parsed', files);
+    for await (const file of files) {
+      let readStream;
+      try {
+        const { skaterData, goalieData, teamData } = await parse(readStream = createReadStream(file), gameType, session, sessionRank);
 
-      const saveDirectory = `./team-stats/${toDatePartitionString(teamData.date)}`;
-      mkdirSync(saveDirectory, { recursive: true });
+        const saveDirectory = `./team-stats/${toDatePartitionString(teamData.date)}`;
+        mkdirSync(saveDirectory, { recursive: true });
 
-      await write(saveDirectory, skaterData, goalieData, teamData);
-      readStream.close();
-    }
-    catch (e) {
-      console.error("Parsing failed.", e);
-      readStream.close();
-      process.exit(1)
+        await write(saveDirectory, skaterData, goalieData, teamData);
+      }
+      catch (e) {
+        console.error("Parsing failed.", e);
+      }
+      finally {
+        readStream.close();
+      }
     }
   });
 
