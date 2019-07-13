@@ -75,13 +75,13 @@ function append(spreadsheetId, sheetName, values, dryRun) {
         resource: {
           values
         },
-        auth,
       };
       if (dryRun) {
         console.info(`DryRun: The following request will be sent. \n`, JSON.stringify(request, null, 4));
         resolve({});
       } else {
-        return sheets.spreadsheets.values.append(request, promiseCallback(resolve, reject));
+        console.debug(`Sending Request: \n`, JSON.stringify(request, null, 4));
+        return sheets.spreadsheets.values.append({ auth, ...request }, promiseCallback(resolve, reject));
       }
     });
   })
