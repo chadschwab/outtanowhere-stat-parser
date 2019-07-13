@@ -6,10 +6,10 @@ const { sep } = require('path');
 const { sync: globSync } = require('glob');
 
 const parse = require('./src/parse');
-const write = require('./src/write');
+const stringifyParsedData = require('./src/stringifyParsedData');
 const googleSheet = require('./src/google-sheet');
 
-const { toDatePartitionString, parseDateFromPartitionString } = require('./src/utils');
+const { toDatePartitionString, parseDateFromPartitionString, statTypes } = require('./src/utils');
 
 if (!process.env.DEBUG) {
   console.debug = () => { }
@@ -26,12 +26,16 @@ program
     for await (const file of files) {
       let readStream;
       try {
-        const { skaterData, goalieData, teamData } = await parse(readStream = createReadStream(file), gameType, session, sessionRank);
+        const parsedData = await parse(readStream = createReadStream(file), gameType, session, sessionRank);
 
-        const saveDirectory = `./team-stats/${toDatePartitionString(teamData.date)}`;
+        const saveDirectory = `./team-stats/${toDatePartitionString(parsedData.teamData.date)}`;
         mkdirSync(saveDirectory, { recursive: true });
 
-        await write(saveDirectory, skaterData, goalieData, teamData);
+        const stringifiedData = await Promise.all(statTypes.map(async s => stringifyParsedData(parsedData[s], s, false)));
+        statTypes.forEach((s, i) => writeFileSync(`${saveDirectory}/${s}.csv`, stringifiedData[i]));
+
+        const stringifiedDataWithHeaders = await Promise.all(statTypes.map(async s => stringifyParsedData(parsedData[s], s, true)));
+        await writeFileSync(`${saveDirectory}/facebook-post.txt`, stringifiedDataWithHeaders.join("--\n\n"))
       }
       catch (e) {
         console.error("Parsing failed.", e);
@@ -44,26 +48,24 @@ program
 
 program
   .command('combine')
-  .option('-s, --stat-type [statType]', 'The stat type to target [skaterData|goalieData|teamData]')
-  .action(async function ({ statType }) {
-    const statTypes = statType ? [statType] : ['skaterData', 'goalieData', 'teamData'];
+  .action(async function () {
     const saveDirectory = `./team-stats/aggregate/${toDatePartitionString(new Date())}`;
     mkdirSync(saveDirectory, { recursive: true });
 
-    await Promise.all(statTypes.map(async fileType => {
-      const fileName = fileType.replace(/(\.csv)?$/, ".csv")
+    await Promise.all(statTypes.map(async statType => {
+      const fileName = statType.replace(/(\.csv)?$/, ".csv")
 
       const files = globSync(`team-stats/*/${fileName}`);
-      console.debug(`${fileType}: The following files will be joined: `, files);
+      console.debug(`${statType}: The following files will be joined: `, files);
 
       const sortedFiles = files.sort((a, b) => parseDateFromPartitionString(a).getTime() - parseDateFromPartitionString(b).getTime());
-      console.debug(`${fileType}: After sort applied: `, sortedFiles);
+      console.debug(`${statType}: After sort applied: `, sortedFiles);
 
       const joined = sortedFiles
         .map(f => readFileSync(f))
         .join('');
 
-      console.info(`${fileType} Result:\n`, joined);
+      console.info(`${statType} Result:\n`, joined);
       writeFileSync(`${saveDirectory}/${fileName}`, joined);
     }));
   });
