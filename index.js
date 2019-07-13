@@ -3,17 +3,20 @@
 const program = require('commander');
 const { createReadStream, mkdirSync, readFileSync, writeFileSync, lstatSync, readdirSync } = require('fs');
 const { sep } = require('path');
+const { sync: globSync } = require('glob');
+
 const parse = require('./src/parse');
 const write = require('./src/write');
+const googleSheet = require('./src/google-sheet');
+
 const { toDatePartitionString, parseDateFromPartitionString } = require('./src/utils');
-const { sync: globSync } = require('glob');
+
 if (!process.env.DEBUG) {
   console.debug = () => { }
 }
 
 program
   .command('parse <file>')
-  .option('-o, --output [output]', 'The output file. If not given outputs to standard out.')
   .option('--game-type [gameType]', 'Type of session [Regular|Playoff]', 'Regular')
   .option('--session [session]', 'The description of the session', 'Summer 2019')
   .option('--session-rank [sessionRank]', 'The description of the session', '6')
@@ -40,24 +43,53 @@ program
   });
 
 program
-  .command('combine <file-type>')
-  .action(fileType => {
-    const fileName = fileType.replace(/(\.csv)?$/, ".csv")
+  .command('combine')
+  .option('-s, --stat-type [statType]', 'The stat type to target [skaterData|goalieData|teamData]')
+  .action(async function ({ statType }) {
+    const statTypes = statType ? [statType] : ['skaterData', 'goalieData', 'teamData'];
     const saveDirectory = `./team-stats/aggregate/${toDatePartitionString(new Date())}`;
     mkdirSync(saveDirectory, { recursive: true });
 
-    const files = globSync(`team-stats/*/${fileName}`);
-    console.debug("The following files will be joined: ", files);
+    await Promise.all(statTypes.map(async fileType => {
+      const fileName = fileType.replace(/(\.csv)?$/, ".csv")
 
-    const sortedFiles = files.sort((a, b) => parseDateFromPartitionString(a).getTime() - parseDateFromPartitionString(b).getTime());
-    console.debug("After sort applied: ", sortedFiles);
+      const files = globSync(`team-stats/*/${fileName}`);
+      console.debug(`${fileType}: The following files will be joined: `, files);
 
-    const joined = sortedFiles
-      .map(f => readFileSync(f))
-      .join('');
+      const sortedFiles = files.sort((a, b) => parseDateFromPartitionString(a).getTime() - parseDateFromPartitionString(b).getTime());
+      console.debug(`${fileType}: After sort applied: `, sortedFiles);
 
-    console.info(`Result:\n${joined}`);
-    writeFileSync(`${saveDirectory}/${fileName}`, joined);
+      const joined = sortedFiles
+        .map(f => readFileSync(f))
+        .join('');
+
+      console.info(`${fileType} Result:\n`, joined);
+      writeFileSync(`${saveDirectory}/${fileName}`, joined);
+    }));
+  });
+
+//https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/request#appendcellsrequest
+//https://developers.google.com/sheets/api/guides/authorizing
+program
+  .command('upload <directory>')
+  .option('--spreadsheet-details [spreadsheetDetailsPath]', 'The location of the file for spreadsheet details', 'google-config/staging-spreadsheet-details.json')
+  .action(async (directory, { spreadsheetDetailsPath }) => {
+    const spreadSheetDetails = JSON.parse(readFileSync(spreadsheetDetailsPath));
+    const dataFiles = readFileSync(directory)
+      .map(f => f.replace('.json', ''))
+      .filter(f => spreadSheetDetails.sheets[f]);
+
+    console.debug('uploading the following data files: ')
+
+    for await (const file of readFileSync(directory).filter(f => f.endsWith('.json')).map(f => f.replace('.json', '')))
+      Promise.all(readdirSync(directory)
+        .filter(f => f.endsWith('.json'))
+        .map(async f => {
+          const values = readFileSync(f);
+          const fileType = f.replace('.json', '');
+          await googleSheet.append(spreadSheetDetails.spreadS)
+        })
+      );
   });
 
 program.parse(process.argv)
