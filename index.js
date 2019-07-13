@@ -4,7 +4,7 @@ const program = require('commander');
 const { createReadStream, mkdirSync, readFileSync, writeFileSync, lstatSync, readdirSync } = require('fs');
 const { sep } = require('path');
 const { sync: globSync } = require('glob');
-
+const csvParse = require('csv-parse/lib/sync')
 const parse = require('./src/parse');
 const stringifyParsedData = require('./src/stringifyParsedData');
 const googleSheet = require('./src/google-sheet');
@@ -74,24 +74,30 @@ program
 //https://developers.google.com/sheets/api/guides/authorizing
 program
   .command('upload <directory>')
-  .option('--spreadsheet-details [spreadsheetDetailsPath]', 'The location of the file for spreadsheet details', 'google-config/staging-spreadsheet-details.json')
-  .action(async (directory, { spreadsheetDetailsPath }) => {
+  .option('--spreadsheet-details [spreadsheetDetails]', 'The location of the file for spreadsheet details', 'google-config/staging-spreadsheet-details.json')
+  .option('-d, --dry-run [dryRun]', 'Toggle dry run on. Nothing will be uploaded.')
+  .action(async (directory, { spreadsheetDetails: spreadsheetDetailsPath, dryRun }) => {
     const spreadSheetDetails = JSON.parse(readFileSync(spreadsheetDetailsPath));
-    const dataFiles = readFileSync(directory)
-      .map(f => f.replace('.json', ''))
-      .filter(f => spreadSheetDetails.sheets[f]);
+    const dataFiles =
+      readdirSync(directory)
+        .reduce((agg, f) => {
+          const fileStatType = f.replace(/\.csv$/, '');
+          if (statTypes.includes(fileStatType)) {
+            return [...agg, { statType: fileStatType, file: `${directory}${sep}${f}`, spreadSheetName: spreadSheetDetails.sheets[fileStatType] }]
+          }
+          return agg;
+        }, []);
+    if (dataFiles.length !== statTypes.length) {
+      console.error(`Missing statTypes. Found: ${dataFiles.map(d => d.statType)}. Expected ${statTypes}`);
+      return process.exit(1);
+    }
 
-    console.debug('uploading the following data files: ')
+    console.debug('uploading the following data files:\n', JSON.stringify(dataFiles, null, 4));
 
-    for await (const file of readFileSync(directory).filter(f => f.endsWith('.json')).map(f => f.replace('.json', '')))
-      Promise.all(readdirSync(directory)
-        .filter(f => f.endsWith('.json'))
-        .map(async f => {
-          const values = readFileSync(f);
-          const fileType = f.replace('.json', '');
-          await googleSheet.append(spreadSheetDetails.spreadS)
-        })
-      );
+    for await (const { file, spreadSheetName } of dataFiles) {
+      const values = csvParse(readFileSync(file, "utf8"));
+      await googleSheet.append(spreadSheetDetails.spreadsheetId, spreadSheetName, values, dryRun);
+    }
   });
 
 program.parse(process.argv)

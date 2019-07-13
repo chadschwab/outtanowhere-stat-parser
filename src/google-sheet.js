@@ -11,7 +11,7 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 // The file token.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
 // time.
-const TOKEN_PATH = '../google-config/token.json';
+const TOKEN_PATH = 'google-config/token.json';
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -64,7 +64,7 @@ function getNewToken(oAuth2Client, callback) {
   });
 }
 
-function append(spreadsheetId, sheetName, values) {
+function append(spreadsheetId, sheetName, values, dryRun) {
   return new Promise((resolve, reject) => {
     authorize(credentials, auth => {
       var request = {
@@ -77,7 +77,12 @@ function append(spreadsheetId, sheetName, values) {
         },
         auth,
       };
-      sheets.spreadsheets.values.append(request, promiseCallback(resolve, reject));
+      if (dryRun) {
+        console.info(`DryRun: The following request will be sent. \n`, JSON.stringify(request, null, 4));
+        resolve({});
+      } else {
+        return sheets.spreadsheets.values.append(request, promiseCallback(resolve, reject));
+      }
     });
   })
     .then(response => JSON.stringify(response));
