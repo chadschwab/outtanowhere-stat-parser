@@ -19,7 +19,7 @@ program
   .command('parse <file>')
   .option('--game-type [gameType]', 'Type of session [Regular|Playoff]', 'Regular')
   .option('--session [session]', 'The description of the session', 'Summer 2019')
-  .option('--session-rank [sessionRank]', 'The description of the session', '6')
+  .option('--session-rank [sessionRank]', 'The description of the session', '7')
   .action(async function (file, { gameType, session, sessionRank }) {
     let files = lstatSync(file).isDirectory() ? readdirSync(file).filter(f => f.endsWith('.txt')).map(f => `${file}${sep}${f}`) : [file];
     console.debug('The following files will be parsed', files);
