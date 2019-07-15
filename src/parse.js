@@ -77,6 +77,10 @@ function parseDateFromLine(line) {
     const date = new Date(`${dateMatch[1]} ${new Date().getFullYear()}`)
     return date
   }
+  const hourMatch = line.match(/^\s*(1?[0-9]) hrs\s*$/i);
+  if (hourMatch) {
+    return new Date(new Date().getTime() - (parseInt(hourMatch[1]) * 3600000));
+  }
   return null
 }
 
@@ -87,13 +91,13 @@ async function parseTeamDataFromLine(line) {
   const sowMatch = line.match(/shoot out win|sow/i)
   const solMatch = line.match(/shoot out loss|sol/i)
   const opponentMatch = line.match(/(v\.?s\.?|verse|versus|to)\s?(.*) at/i) || line.match(/(v\.?s\.?|to|verse|versus)\s?(.*)\s*/i)
-  const timeMatch = line.match(/at ([0-1]?[0-9]:[0-9]{2})\s?(A\.?M|P\.?M)/i);
+  const timeMatch = line.match(/at ([0-1]?[0-9]):?([0-9]{2})\s?(A\.?M|P\.?M)?/i);
 
   if (scoreMatch) {
     let [, gf, ga] = scoreMatch
     return {
       opponent: opponentMatch ? opponentMatch[2] : await askForInput("Opponent: "),
-      time: timeMatch ? timeMatch[1] + timeMatch[2] : await askForInput("Time: "),
+      time: timeMatch ? timeMatch[1] + ':' + timeMatch[2] + (timeMatch[3] || await askForInput("AM/PM:")) : await askForInput("Time: "),
       win: winMatch && !sowMatch ? 1 : 0,
       loss: lossMatch && !solMatch ? 1 : 0,
       sow: sowMatch ? 1 : 0,
