@@ -74,7 +74,7 @@ program
 //https://developers.google.com/sheets/api/guides/authorizing
 program
   .command('upload <directory>')
-  .option('--spreadsheet-details [spreadsheetDetails]', 'The location of the file for spreadsheet details', 'google-config/staging-spreadsheet-details.json')
+  .option('--spreadsheet-details [spreadsheetDetails]', 'The location of the file for spreadsheet details', 'google-config/spreadsheet-details.json')
   .option('-d, --dry-run [dryRun]', 'Toggle dry run on. Nothing will be uploaded.')
   .action(async (directory, { spreadsheetDetails: spreadsheetDetailsPath, dryRun }) => {
     const spreadSheetDetails = JSON.parse(readFileSync(spreadsheetDetailsPath));
