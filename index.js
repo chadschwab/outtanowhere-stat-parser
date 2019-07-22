@@ -4,7 +4,7 @@ const program = require('commander');
 const { createReadStream, mkdirSync, readFileSync, writeFileSync, lstatSync, readdirSync } = require('fs');
 const { sep } = require('path');
 const { sync: globSync } = require('glob');
-const csvParse = require('csv-parse/lib/sync')
+const csvParse = require('csv-parse/lib/sync');
 const parse = require('./src/parse');
 const stringifyParsedData = require('./src/stringifyParsedData');
 const googleSheet = require('./src/google-sheet');
@@ -12,7 +12,7 @@ const googleSheet = require('./src/google-sheet');
 const { toDatePartitionString, parseDateFromPartitionString, statTypes } = require('./src/utils');
 
 if (!process.env.DEBUG) {
-  console.debug = () => { }
+  console.debug = () => { };
 }
 
 program
@@ -35,7 +35,7 @@ program
         statTypes.forEach((s, i) => writeFileSync(`${saveDirectory}/${s}.csv`, stringifiedData[i]));
 
         const stringifiedDataWithHeaders = await Promise.all(statTypes.map(async s => stringifyParsedData(parsedData[s], s, true)));
-        await writeFileSync(`${saveDirectory}/facebook-post.txt`, stringifiedDataWithHeaders.join("--\n\n"))
+        await writeFileSync(`${saveDirectory}/facebook-post.txt`, stringifiedDataWithHeaders.join("--\n\n"));
       }
       catch (e) {
         console.error("Parsing failed.", e);
@@ -53,7 +53,7 @@ program
     mkdirSync(saveDirectory, { recursive: true });
 
     await Promise.all(statTypes.map(async statType => {
-      const fileName = statType.replace(/(\.csv)?$/, ".csv")
+      const fileName = statType.replace(/(\.csv)?$/, ".csv");
 
       const files = globSync(`team-stats/*/${fileName}`);
       console.debug(`${statType}: The following files will be joined: `, files);
@@ -83,7 +83,7 @@ program
         .reduce((agg, f) => {
           const fileStatType = f.replace(/\.csv$/, '');
           if (statTypes.includes(fileStatType)) {
-            return [...agg, { statType: fileStatType, file: `${directory}${sep}${f}`, spreadSheetName: spreadSheetDetails.sheets[fileStatType] }]
+            return [...agg, { statType: fileStatType, file: `${directory}${sep}${f}`, spreadSheetName: spreadSheetDetails.sheets[fileStatType] }];
           }
           return agg;
         }, []);
@@ -100,4 +100,4 @@ program
     }
   });
 
-program.parse(process.argv)
+program.parse(process.argv);

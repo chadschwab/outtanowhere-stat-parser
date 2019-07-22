@@ -7,7 +7,7 @@ const statTypeColumns = {
   skaterData: ['player', 'session', 'type', 'date', 'gp', 'g', 'a', 'pts', 'pim', 'soa', 'sog'],
   goalieData: ['player', 'session', 'type', 'date', 'gp', 'w', 'l', 'sol', 'a', 'sv', 'shots', 'ga', 'so sa', 'so ga'],
   teamData: ['rank', 'session', 'type', 'opponent', 'date', 'time', 'win', 'loss', 'sol', 'sow', 'gf', 'ga']
-}
+};
 
 const defaultOptions = (humanReadable) => ({
   delimiter: humanReadable ? '|' : ',',
@@ -26,7 +26,7 @@ function stringifyParsedData(parsedData, statType, humanReadable) {
         columns: statTypeColumns[statType],
         header: humanReadable,
       },
-      promiseCallback(resolve, reject))
+      promiseCallback(resolve, reject));
   });
 }
 
