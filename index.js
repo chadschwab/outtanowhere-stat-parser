@@ -36,7 +36,7 @@ program
         statTypes.forEach((s, i) => writeFileSync(`${saveDirectory}/${s}.csv`, stringifiedData[i]));
 
         const htmlifiedData = await Promise.all(statTypes.map(async s => ({ statType: s, html: await htmlifyParsedData(parsedData[s], s) })));
-        const html = htmlifiedData.reduce((aggHtml, { statType, html }) => aggHtml.replace(`\${${statType}}`, html), readFileSync('data-template.html', { encoding: 'utf-8' }));
+        const html = htmlifiedData.reduce((aggHtml, { statType, html }) => aggHtml.replace(`\${${statType}}`, html), readFileSync('preview-template.html', { encoding: 'utf-8' }));
         const htmlPath = `${saveDirectory}${sep}preview.html`;
         await writeFileSync(htmlPath, html);
 

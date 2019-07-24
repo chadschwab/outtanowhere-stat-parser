@@ -6,6 +6,9 @@ function format(data) {
   if (data && data.toLocaleDateString) {
     return data.toLocaleDateString();
   }
+  if (data === null) {
+    return '';
+  }
   return data;
 }
 

@@ -8,7 +8,7 @@ module.exports = async function (url) {
     console.debug(`Headless rendering ${url}`);
     chrome = await ChromeLauncher.launch({
       startingUrl: url,
-      chromeFlags: ['--headless', '--disable-gpu', '--window-size=620,756'],
+      chromeFlags: ['--headless', '--disable-gpu', '--window-size=1280,720'],
       logLevel: process.env.DEBUG && "verbose"
     });
     console.debug("Attaching to port ", chrome.port);
