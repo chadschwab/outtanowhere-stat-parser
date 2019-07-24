@@ -7,9 +7,10 @@ const { sync: globSync } = require('glob');
 const csvParse = require('csv-parse/lib/sync');
 const parse = require('./src/parse');
 const stringifyParsedData = require('./src/stringifyParsedData');
-const googleSheet = require('./src/google-sheet');
-
+const htmlifyParsedData = require('./src/htmlifyParsedData');
+const googleSheet = require('./src/googleSheet');
 const { toDatePartitionString, parseDateFromPartitionString, statTypes } = require('./src/utils');
+const base64SnapshotHtml = require('./src/base64SnapshotHtml');
 
 if (!process.env.DEBUG) {
   console.debug = () => { };
@@ -28,14 +29,21 @@ program
       try {
         const parsedData = await parse(readStream = createReadStream(file), gameType, session, sessionRank);
 
-        const saveDirectory = `./team-stats/${toDatePartitionString(parsedData.teamData.date)}`;
+        const saveDirectory = `${__dirname}${sep}/team-stats/${toDatePartitionString(parsedData.teamData.date)}`;
         mkdirSync(saveDirectory, { recursive: true });
 
-        const stringifiedData = await Promise.all(statTypes.map(async s => stringifyParsedData(parsedData[s], s, false)));
+        const stringifiedData = await Promise.all(statTypes.map(async s => stringifyParsedData(parsedData[s], s)));
         statTypes.forEach((s, i) => writeFileSync(`${saveDirectory}/${s}.csv`, stringifiedData[i]));
 
-        const stringifiedDataWithHeaders = await Promise.all(statTypes.map(async s => stringifyParsedData(parsedData[s], s, true)));
-        await writeFileSync(`${saveDirectory}/facebook-post.txt`, stringifiedDataWithHeaders.join("--\n\n"));
+        const htmlifiedData = await Promise.all(statTypes.map(async s => ({ statType: s, html: await htmlifyParsedData(parsedData[s], s) })));
+        const html = htmlifiedData.reduce((aggHtml, { statType, html }) => aggHtml.replace(`\${${statType}}`, html), readFileSync('data-template.html', { encoding: 'utf-8' }));
+        const htmlPath = `${saveDirectory}${sep}preview.html`;
+        await writeFileSync(htmlPath, html);
+
+        const windowsBashHack = path => `${path[5].toUpperCase()}:${path.slice(6)}`;
+        const htmlUrl = 'file://' + (htmlPath.startsWith('/mnt/') ? windowsBashHack(htmlPath) : htmlPath);
+        const screenshotData = await base64SnapshotHtml(htmlUrl);
+        await writeFileSync(`${saveDirectory}${sep}preview.png`, screenshotData, 'base64');
       }
       catch (e) {
         console.error("Parsing failed.", e);
