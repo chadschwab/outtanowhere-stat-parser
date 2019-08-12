@@ -94,8 +94,8 @@ async function parseTeamDataFromLine(line) {
   let lossMatch = line.match(/loss|lost|\sL\s/i);
   const sowMatch = line.match(/shoot out win|sow/i);
   const solMatch = line.match(/shoot out loss|sol/i);
-  const opponentMatch = line.match(/(v\.?s\.?|verse|versus|to)\s?(.*) (at|@)/i) || line.match(/(v\.?s\.?|to|verse|versus)\s?(.*)\s*/i);
-  const timeMatch = line.match(/(at|@)\s?([0-1]?[0-9]):?([0-9]{2})\s?(A\.?M|P\.?M)?/i);
+  const opponentMatch = line.match(/(v\.?s\.?|verse|versus|to)\s?(.*) (at|@|[0-9])/i) || line.match(/(v\.?s\.?|to|verse|versus)\s?(.*)\s*/i);
+  const timeMatch = line.match(/(at|@)?\s?([0-1]?[0-9]):?([0-9]{2})\s?(A\.?M|P\.?M)?/i);
 
   if (scoreMatch) {
     let gf, ga;
